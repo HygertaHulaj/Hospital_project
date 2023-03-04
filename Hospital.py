@@ -21,17 +21,18 @@ cur.execute("""CREATE TABLE IF NOT EXISTS Doctors(
     Phone_number INTEGER,
     Specialisation TEXT)""")
 
-def add_patient(Name, Phone_number, Birth_date, Type_of_visit):
-    cur.execute("INSERT INTO Patients (Name, Phone_number, Birth_date, Type_of_visit) VALUES (?, ?, ?, ?)",
-              (Name, Phone_number, Birth_date, Type_of_visit))
+def add_patient(Name, Phone_number, Birth_date, Type_of_visit,Doctor_id):
+    cur.execute("INSERT INTO Patients (Name, Phone_number, Birth_date, Type_of_visit,Doctor_id) VALUES (?, ?, ?, ?,?)",
+              (Name, Phone_number, Birth_date, Type_of_visit,Doctor_id))
     conn.commit()
     st.success('Patient added to database!')
+
 def add_doctors(Name, Phone_number, Birth_date, Specialisation):
     cur.execute("INSERT INTO Doctors (Name, Phone_number, Birth_date, Specialisation) VALUES (?, ?, ?, ?)",
               (Name, Phone_number, Birth_date, Specialisation))
     conn.commit()
     st.success('Doctors added to database!')
-def update_patient(ID, Name=None, Phone_number=None, Birth_date=None, Type_of_visit=None):
+def update_patient(ID, Name=None, Phone_number=None, Birth_date=None, Type_of_visit=None, Doctor_id=None):
     update_cols = []
     update_vals = []
     if Name is not None:
@@ -46,12 +47,16 @@ def update_patient(ID, Name=None, Phone_number=None, Birth_date=None, Type_of_vi
     if Type_of_visit is not None:
         update_cols.append('Type_of_visit = ?')
         update_vals.append(Type_of_visit)
+    if Doctor_id is not None:
+        update_cols.append('doctorid = ?')
+        update_vals.append(Doctor_id)
+
     if len(update_cols) == 0:
         st.warning('Please specify at least one field to update')
         return
     update_cols_str = ', '.join(update_cols)
     update_vals.append(ID)
-    cur.execute(f"UPDATE Patients SET {update_cols_str} WHERE ID = ?", update_vals)
+    cur.execute(f"UPDATE Patients SET {update_cols_str} WHERE ID = ?", tuple(update_vals))
     conn.commit()
     st.success('Patient information updated')
 
@@ -59,7 +64,7 @@ def view_patients():
     st.subheader('List of patients')
     cur.execute("SELECT * FROM Patients")
     data = cur.fetchall()
-    df = pd.DataFrame(data, columns=['ID', 'Name', 'Phone number', 'Birth Date', 'Type of Visit'])
+    df = pd.DataFrame(data, columns=['ID', 'Name', 'Birth date', 'Phone number', 'Type of Visit','Doctor id'])
     st.dataframe(df)
 def view_doctors():
     st.subheader('List of doctors')
@@ -84,8 +89,17 @@ def main():
         Birth_date= st.text_input('Date of birth')
         Phone_number = st.text_input('Phone number')
         Type_of_visit = st.selectbox('Type of visit', ['Surgery', 'Normal Visit', 'Urgency'])
+        def doctor_id(Type_of_visit):
+            if Type_of_visit == 'Surgery':
+                Doctor_id = 1
+            elif Type_of_visit == 'Normal visit':
+                Doctor_id = 2
+            elif Type_of_visit == 'Urgency':
+                Doctor_id = 3
+            return Doctor_id
+        doctorid=doctor_id(Type_of_visit)
         if st.button('Add Patient'):
-            add_patient(Name, Phone_number, Birth_date, Type_of_visit)
+            add_patient(Name, Phone_number, Birth_date, Type_of_visit,doctorid)
     elif choice == 'Add Doctors':
         st.subheader('Add new doctor')
         Name = st.text_input('Name')
@@ -109,12 +123,9 @@ def main():
             Birth_date= st.text_input('Date of birth')
             Phone_number = st.text_input('Phone number')
             Type_of_visit = st.selectbox('Type of visit', ['Surgery', 'Normal Visit', 'Urgency'])
+            Doctorid=doctor_id(Type_of_visit)
             if st.button('Update Patient'):
-                update_patient(patient_id, Name, Phone_number, Birth_date, Type_of_visit)
-
-        
-        
-
+                update_patient(patient_id, Name, Phone_number, Birth_date, Type_of_visit,Doctorid)
     elif choice == 'View Doctors':
         view_doctors()
 
